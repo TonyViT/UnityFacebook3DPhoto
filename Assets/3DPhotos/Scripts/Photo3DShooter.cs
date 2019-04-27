@@ -109,9 +109,9 @@ namespace Photo3D
             m_camera.enabled = false;
 
             //init textures
-            m_renderTexture = new RenderTexture(PhotoWidth, PhotoHeight, 24, RenderTextureFormat.BGRA32);
+            m_renderTexture = new RenderTexture(PhotoWidth, PhotoHeight, 24, RenderTextureFormat.ARGB32);
             m_renderTexture.Create();
-            m_texture = new Texture2D(PhotoWidth, PhotoHeight);
+            m_texture = new Texture2D(PhotoWidth, PhotoHeight, TextureFormat.ARGB32, false);
 
             //set depth multiplier, as required by the user
             PostprocessMaterial.SetFloat("_DepthMultiplier", DepthMultiplier);
@@ -153,11 +153,14 @@ namespace Photo3D
             m_camera.targetTexture = m_renderTexture;
             RenderTexture.active = m_renderTexture;
 
+            //compute date for the file name. We do it here, otherwise the name of the file may change between depth and color computations
+            DateTime nowTime = DateTime.Now;
+
             //shoot Color photo
-            RenderAndSaveImage(false);
+            RenderAndSaveImage(false, nowTime);
 
             //shoot Depth photo
-            RenderAndSaveImage(true);           
+            RenderAndSaveImage(true, nowTime);           
 
             //disable camera and render texture
             RenderTexture.active = null;
@@ -169,21 +172,22 @@ namespace Photo3D
         /// Renders an image from current camera and saves it to a file on disk
         /// </summary>
         /// <param name="isDepthImage">True if we must compute depth map, false for color image</param>
-        private void RenderAndSaveImage(bool isDepthImage)
+        /// <param name="nowTime">Present time used to save the images</param>
+        private void RenderAndSaveImage(bool isDepthImage, DateTime nowTime)
         {
             //set depth parameter: it will be used by the OnRenderImage method called internally by the Render() method of the camera to decide if applying a depth-compute shader or not
             m_depthImage = isDepthImage;
             
             //render the scene and save it to texture
             m_camera.Render();            
-            m_texture.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0); 
+            m_texture.ReadPixels(new Rect(0, 0, PhotoWidth, PhotoHeight), 0, 0); 
 
             //convert to PNG
             byte[] imgPng = m_texture.EncodeToPNG();
 
             //save image to disk
             //TODO: put it into another thread to not make the saving block the application
-            StartCoroutine(SaveImage(imgPng, isDepthImage));            
+            StartCoroutine(SaveImage(imgPng, isDepthImage, nowTime));            
         }
 
         /// <summary>
@@ -191,12 +195,12 @@ namespace Photo3D
         /// </summary>
         /// <param name="imageToSave">PNG image to save</param>
         /// <param name="isDepthImage">True if it is a depth image, false otherwise</param>
+        /// <param name="nowTime">Present time used to compute the filename</param>
         /// <returns></returns>
-        private IEnumerator SaveImage(byte[] imageToSave, bool isDepthImage)
+        private IEnumerator SaveImage(byte[] imageToSave, bool isDepthImage, DateTime nowTime)
         {
             //create a file name. Notice that the depth map must end with "_depth"
-            System.DateTime now = System.DateTime.Now;
-            string fileName = String.Format("{0}_Photo3D_{1}_{2}_{3}_{4}_{5}_{6}.png", ProgramTag, now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second + (isDepthImage ? "_depth" : ""));
+            string fileName = String.Format("{0}_Photo3D_{1}_{2}_{3}_{4}_{5}_{6}.png", ProgramTag, nowTime.Year, nowTime.Month, nowTime.Day, nowTime.Hour, nowTime.Minute, nowTime.Second + (isDepthImage ? "_depth" : ""));
 
 #if UNITY_STANDALONE || UNITY_EDITOR
             //on PC, let's save the image on the directory of the executable
