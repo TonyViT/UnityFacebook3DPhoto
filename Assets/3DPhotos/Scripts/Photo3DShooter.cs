@@ -196,7 +196,7 @@ namespace Photo3D
         {
             //create a file name. Notice that the depth map must end with "_depth"
             System.DateTime now = System.DateTime.Now;
-            string fileName = String.Format("{0}_Photo3D_{1}_{2}_{3}_{4}_{5}_{6}.png", ProgramTag, now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second + (isDepthImage ? "" : "_depth"));
+            string fileName = String.Format("{0}_Photo3D_{1}_{2}_{3}_{4}_{5}_{6}.png", ProgramTag, now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second + (isDepthImage ? "_depth" : ""));
 
 #if UNITY_STANDALONE || UNITY_EDITOR
             //on PC, let's save the image on the directory of the executable
